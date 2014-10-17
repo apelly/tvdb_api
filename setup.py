@@ -1,11 +1,11 @@
 from setuptools import setup
 setup(
 name = 'tvdb_api',
-version='1.9',
+version='1.10a1',
 
 author='dbr/Ben',
 description='Interface to thetvdb.com',
-url='http://github.com/dbr/tvdb_api/tree/master',
+url='https://github.com/apelly/tvdb_api',
 license='unlicense',
 
 long_description="""\

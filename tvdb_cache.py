@@ -9,7 +9,7 @@
 urllib2 caching handler
 Modified from http://code.activestate.com/recipes/491261/
 """
-from __future__ import with_statement
+
 
 __author__ = "dbr/Ben"
 __version__ = "1.9"
@@ -17,9 +17,11 @@ __version__ = "1.9"
 import os
 import time
 import errno
-import httplib
-import urllib2
-import StringIO
+import http.client
+import urllib.request, urllib.error, urllib.parse
+from email import policy
+import io
+import pickle
 from hashlib import md5
 from threading import RLock
 
@@ -38,7 +40,10 @@ def locked_function(origfunc):
 def calculate_cache_path(cache_location, url):
     """Checks if [cache_location]/[hash_of_url].headers and .body exist
     """
-    thumb = md5(url).hexdigest()
+    # ajp 17-10-14 >>>
+    #thumb = md5(url).hexdigest()
+    thumb = md5(url.encode('utf-8')).hexdigest()
+    # ajp 17-10-14 <<<
     header = os.path.join(cache_location, thumb + ".headers")
     body = os.path.join(cache_location, thumb + ".body")
     return header, body
@@ -76,12 +81,20 @@ def store_in_cache(cache_location, url, response):
     hpath, bpath = calculate_cache_path(cache_location, url)
     try:
         outf = open(hpath, "wb")
-        headers = str(response.info())
-        outf.write(headers)
+        # ajp 17-10-14 >>>
+        pickle.dump(response.info(), outf)
+        # ajp 17-10-14 <<<
         outf.close()
 
-        outf = open(bpath, "wb")
-        outf.write(response.read())
+        # ajp 17-10-14 >>>
+        #outf = open(bpath, "wb")
+        outf = open(bpath, "w")
+        outfdata = response.read()
+        if not isinstance(outfdata, str):
+            outfdata = str(outfdata, 'utf-8')
+        #outf.write(response.read())
+        outf.write(outfdata)
+        # ajp 17-10-14 <<<
         outf.close()
     except IOError:
         return True
@@ -102,7 +115,7 @@ def delete_from_cache(cache_location, url):
     else:
         return False
 
-class CacheHandler(urllib2.BaseHandler):
+class CacheHandler(urllib.request.BaseHandler):
     """Stores responses in a persistant on-disk cache.
 
     If a subsequent GET request is made for the same URL, the stored
@@ -116,7 +129,7 @@ class CacheHandler(urllib2.BaseHandler):
         if not os.path.exists(self.cache_location):
             try:
                 os.mkdir(self.cache_location)
-            except OSError, e:
+            except OSError as e:
                 if e.errno == errno.EEXIST and os.path.isdir(self.cache_location):
                     # File exists, and it's a directory,
                     # another process beat us to creating this dir, that's OK.
@@ -168,7 +181,8 @@ class CacheHandler(urllib2.BaseHandler):
         else:
             return response
 
-class CachedResponse(StringIO.StringIO):
+#class CachedResponse(io.StringIO):
+class CachedResponse(io.StringIO):
     """An urllib2.response-like object for cached responses.
 
     To determine if a response is cached or coming directly from
@@ -180,15 +194,24 @@ class CachedResponse(StringIO.StringIO):
         self.cache_location = cache_location
         hpath, bpath = calculate_cache_path(cache_location, url)
 
-        StringIO.StringIO.__init__(self, file(bpath, "rb").read())
+        # ajp 17-10-14 >>>
+        #io.StringIO.__init__(self, file(bpath, "rb").read())
+        io.StringIO.__init__(self, open(bpath, "r").read())
+        # ajp 17-10-14 <<<
 
         self.url     = url
         self.code    = 200
         self.msg     = "OK"
-        headerbuf = file(hpath, "rb").read()
+        # ajp 17-10-14 >>>
+        #headerbuf = file(hpath, "rb").read()
+        self.headers = pickle.load(open(hpath, "rb"))
+        # ajp 17-10-14 <<<
         if set_cache_header:
-            headerbuf += "x-local-cache: %s\r\n" % (bpath)
-        self.headers = httplib.HTTPMessage(StringIO.StringIO(headerbuf))
+        # ajp 17-10-14 >>>
+            #headerbuf += "x-local-cache: %s\r\n" % (bpath)
+            self.headers.policy = policy.default
+            self.headers["x-local-cache:"] = bpath
+        # ajp 17-10-14 <<<
 
     def info(self):
         """Returns headers
@@ -202,7 +225,7 @@ class CachedResponse(StringIO.StringIO):
 
     @locked_function
     def recache(self):
-        new_request = urllib2.urlopen(self.url)
+        new_request = urllib.request.urlopen(self.url)
         set_cache_header = store_in_cache(
             self.cache_location,
             new_request.url,
@@ -221,14 +244,10 @@ class CachedResponse(StringIO.StringIO):
 if __name__ == "__main__":
     def main():
         """Quick test/example of CacheHandler"""
-        opener = urllib2.build_opener(CacheHandler("/tmp/"))
+        opener = urllib.request.build_opener(CacheHandler("/tmp/"))
         response = opener.open("http://google.com")
-        print response.headers
-        print "Response:", response.read()
 
         response.recache()
-        print response.headers
-        print "After recache:", response.read()
 
         # Test usage in threads
         from threading import Thread
@@ -242,10 +261,10 @@ if __name__ == "__main__":
                 assert self.lastdata == newdata, "Data was not consistent, uhoh"
                 req.recache()
         threads = [CacheThreadTest() for x in range(50)]
-        print "Starting threads"
+        print("Starting threads")
         [t.start() for t in threads]
-        print "..done"
-        print "Joining threads"
+        print("..done")
+        print("Joining threads")
         [t.join() for t in threads]
-        print "..done"
+        print("..done")
     main()
