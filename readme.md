@@ -1,25 +1,15 @@
+# Alert!
+This has been ported to Python 3 by an amateur. I'll do my best to keep it working, but no guarantees!
+
+All credit to https://github.com/dbr/tvdb_api
+
 # `tvdb_api`
 
 `tvdb_api` is an easy to use interface to [thetvdb.com][tvdb]
 
-`tvnamer` has moved to a separate repository: [github.com/dbr/tvnamer][tvnamer] - it is a utility which uses `tvdb_api` to rename files from `some.show.s01e03.blah.abc.avi` to `Some Show - [01x03] - The Episode Name.avi` (which works by getting the episode name from `tvdb_api`)
-
-[![Build Status](https://secure.travis-ci.org/dbr/tvdb_api.png?branch=master)](http://travis-ci.org/dbr/tvdb_api)
-
 ## To install
 
-You can easily install `tvdb_api` via `easy_install`
-
-    easy_install tvdb_api
-
-You may need to use sudo, depending on your setup:
-
-    sudo easy_install tvdb_api
-
-The [`tvnamer`][tvnamer] command-line tool can also be installed via `easy_install`, this installs `tvdb_api` as a dependancy:
-
-    easy_install tvnamer
-
+No idea, but there is a setup script.
 
 ## Basic usage
 
@@ -106,4 +96,4 @@ Remember a simple list of actors is accessible via the default Show data:
     u'|Zach Braff|Donald Faison|Sarah Chalke|Christa Miller|Aloma Wright|Robert Maschio|Sam Lloyd|Neil Flynn|Ken Jenkins|Judy Reyes|John C. McGinley|Travis Schuldt|Johnny Kastl|Heather Graham|Michael Mosley|Kerry Bish\xe9|Dave Franco|Eliza Coupe|'
 
 [tvdb]: http://thetvdb.com
-[tvnamer]: http://github.com/dbr/tvnamer
+
